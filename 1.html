@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎨 AI色彩美学 | 智能聚类 + 通义千问和谐度评估</title>
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4fa;
+            margin: 0;
+            padding: 20px;
+            color: #0f172a;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
+            overflow: hidden;
+            padding: 24px 28px 32px;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0 0 6px;
+            background: linear-gradient(135deg, #1e293b, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            color: #475569;
+            border-left: 4px solid #f97316;
+            padding-left: 16px;
+            margin-bottom: 28px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .control-card {
+            background: #f8fafc;
+            border-radius: 28px;
+            padding: 16px 20px;
+            flex: 1;
+            min-width: 170px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .control-label {
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #334155;
+            margin-bottom: 10px;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 60px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        input[type="range"] {
+            padding: 0;
+        }
+        .k-value {
+            background: #e2e8f0;
+            padding: 2px 12px;
+            border-radius: 40px;
+            margin-left: 10px;
+        }
+        .upload-area {
+            background: #f1f5f9;
+            border: 2px dashed #94a3b8;
+            border-radius: 32px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 24px;
+        }
+        .upload-area:hover {
+            border-color: #f97316;
+            background: #fff7ed;
+        }
+        .preview-box {
+            background: #fefce8;
+            border-radius: 28px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .badge-info {
+            background: #e6f0ff;
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            margin-top: 10px;
+        }
+        .palette-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 20px 0 20px;
+            justify-content: center;
+        }
+        .color-swatch {
+            flex: 1;
+            min-width: 100px;
+            background: #ffffffdb;
+            backdrop-filter: blur(4px);
+            border-radius: 24px;
+            padding: 14px 8px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.6);
+            transition: 0.1s;
+        }
+        .color-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 64px;
+            margin: 0 auto 10px;
+            border: 3px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .color-hex {
+            font-family: monospace;
+            font-weight: bold;
+            background: #1e293b;
+            color: white;
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+        }
+        .count-info {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .harmony-card {
+            background: linear-gradient(105deg, #fef9e3 0%, #fff6e6 100%);
+            border-radius: 28px;
+            padding: 20px 24px;
+            margin: 20px 0 10px;
+            border-left: 8px solid #f97316;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .harmony-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .harmony-score {
+            background: #f97316;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 60px;
+            font-size: 0.85rem;
+        }
+        .harmony-comment {
+            margin-top: 12px;
+            line-height: 1.5;
+            color: #2d3e50;
+        }
+        .loading-ai {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f97316;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-left: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .chart-wrapper {
+            background: #ffffff;
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        }
+        .chart-box {
+            width: 100%;
+            height: 380px;
+        }
+        button {
+            background: #0f172a;
+            color: white;
+            transition: 0.2s;
+            margin-top: 6px;
+        }
+        button:hover {
+            background: #f97316;
+            transform: scale(0.98);
+        }
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #5b6e8c;
+            margin-top: 28px;
+        }
+        @media (max-width: 760px) {
+            .container { padding: 16px; }
+        }
+        .api-note {
+            font-size: 0.7rem;
+            background: #f1f5f9;
+            border-radius: 24px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            color: #475569;
+        }
+        .api-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 3px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>✨ AI 色彩美学 · 通义千问智能评估</h1>
+    <div class="sub">
+        <span>K-means 聚类 | 可调K值 | RGB/LAB | 饼图/柱状图</span>
+        <span style="font-size:0.75rem;">🤖 通义千问大模型判断颜色搭配和谐度</span>
+    </div>
+
+    <!-- 交互控制栏 -->
+    <div class="flex-row">
+        <div class="control-card">
+            <div class="control-label">🎯 聚类数量 K值</div>
+            <input type="range" id="kSlider" min="2" max="7" step="1" value="4">
+            <div style="text-align:center; margin-top:6px;">当前 K = <span id="kValueDisplay" class="k-value">4</span></div>
+        </div>
+        <div class="control-card">
+            <div class="control-label">📊 可视化样式</div>
+            <select id="chartTypeSelect">
+                <option value="pie">🥧 饼图 (Pie)</option>
+                <option value="bar">📊 柱状图 (Bar)</option>
+            </select>
+        </div>
+        <div class="control-card">
+            <div class="control-label">🌈 颜色空间</div>
+            <select id="colorSpaceSelect">
+                <option value="rgb">RGB (默认)</option>
+                <option value="lab">LAB (感知均匀)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- AI 大模型配置区 (通义千问 API - 已配置完整) -->
+    <div class="control-card" style="margin-bottom: 20px;">
+        <div class="control-label">🤖 通义千问 API 配置 (阿里云百炼)</div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <input type="text" id="apiUrl" placeholder="API 地址" value="https://ws-b53m8ofo6m4e5sxj.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions" style="flex:2;">
+            <input type="text" id="apiKey" placeholder="API Key" value="sk-cc4feba24d7146f1b4db9d2bdb8dbc3b" style="flex:1.5;">
+        </div>
+        <div class="api-note" id="apiStatusMsg">✅ 已配置通义千问 API (工作空间: ws-b53m8ofo6m4e5sxj) | 模型: qwen-turbo</div>
+    </div>
+
+    <!-- 图片上传区 -->
+    <div class="upload-area" id="uploadArea">
+        <div>📸 点击 / 拖拽 上传图片 (JPG, PNG, WebP)</div>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display: none;">
+    </div>
+
+    <!-- 预览区 -->
+    <div class="preview-box">
+        <img id="previewImage" class="preview-img" style="display: none;" alt="预览">
+        <div id="noImageMsg" style="color: #94a3b8; padding: 20px;">✨ 上传图片后自动聚类 + 通义千问AI和谐度分析</div>
+        <div id="imgMeta" class="badge-info" style="display: none;"></div>
+    </div>
+
+    <!-- 聚类色板 -->
+    <div style="font-weight: 700;">🎨 聚类中心颜色 & 像素数量</div>
+    <div id="colorPaletteContainer" class="palette-grid">
+        <div style="width:100%; text-align:center; color:#94a3b8;">等待分析...</div>
+    </div>
+
+    <!-- AI 和谐度结果展示卡片 -->
+    <div id="harmonyCard" class="harmony-card" style="display: none;">
+        <div class="harmony-title">
+            🧠 通义千问 · 色彩和谐度评估
+            <span id="harmonyBadge" class="harmony-score">--</span>
+        </div>
+        <div id="harmonyComment" class="harmony-comment">等待AI分析...</div>
+        <div id="aiLoadingMsg" style="font-size:0.75rem; margin-top: 8px; color:#f97316;"></div>
+    </div>
+
+    <!-- ECharts 容器 -->
+    <div class="chart-wrapper">
+        <div id="dynamicChart" class="chart-box"></div>
+    </div>
+    <button id="reanalyzeBtn">🔄 重新聚类 + 通义千问AI和谐度分析</button>
+    <footer>💡 聚类后自动调用通义千问大模型分析主色搭配和谐度 | 支持K值/颜色空间/图表动态切换</footer>
+</div>
+
+<script>
+    // ---------- 全局变量 ----------
+    let currentImageElement = null;
+    let currentClusteringResult = { centersRGB: [], counts: [], totalPixels: 0 };
+    let chartInstance = null;
+    
+    // DOM 元素
+    const kSlider = document.getElementById('kSlider');
+    const kValueDisplay = document.getElementById('kValueDisplay');
+    const chartTypeSelect = document.getElementById('chartTypeSelect');
+    const colorSpaceSelect = document.getElementById('colorSpaceSelect');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewImage = document.getElementById('previewImage');
+    const noImageMsg = document.getElementById('noImageMsg');
+    const imgMeta = document.getElementById('imgMeta');
+    const colorPaletteContainer = document.getElementById('colorPaletteContainer');
+    const reanalyzeBtn = document.getElementById('reanalyzeBtn');
+    const harmonyCard = document.getElementById('harmonyCard');
+    const harmonyBadge = document.getElementById('harmonyBadge');
+    const harmonyComment = document.getElementById('harmonyComment');
+    const aiLoadingMsg = document.getElementById('aiLoadingMsg');
+    const apiUrlInput = document.getElementById('apiUrl');
+    const apiKeyInput = document.getElementById('apiKey');
+    const apiStatusMsg = document.getElementById('apiStatusMsg');
+    
+    // ----- 颜色空间转换 (RGB <-> LAB) -----
+    function rgbToXyz(r,g,b) {
+        let rr = r/255, gg = g/255, bb = b/255;
+        rr = rr > 0.04045 ? Math.pow((rr+0.055)/1.055,2.4) : rr/12.92;
+        gg = gg > 0.04045 ? Math.pow((gg+0.055)/1.055,2.4) : gg/12.92;
+        bb = bb > 0.04045 ? Math.pow((bb+0.055)/1.055,2.4) : bb/12.92;
+        rr*=100; gg*=100; bb*=100;
+        const x = rr*0.4124564 + gg*0.3575761 + bb*0.1804375;
+        const y = rr*0.2126729 + gg*0.7151522 + bb*0.0721750;
+        const z = rr*0.0193339 + gg*0.1195761 + bb*0.9503041;
+        return [x,y,z];
+    }
+    function xyzToLab(x,y,z) {
+        const refX=95.047, refY=100.0, refZ=108.883;
+        let xx=x/refX, yy=y/refY, zz=z/refZ;
+        const f = t => t > 0.008856 ? Math.pow(t,1/3) : (7.787*t)+16/116;
+        const fx=f(xx), fy=f(yy), fz=f(zz);
+        const L = 116*fy - 16;
+        const a = 500*(fx-fy);
+        const b_ = 200*(fy-fz);
+        return [L,a,b_];
+    }
+    function rgbToLab(r,g,b) { return xyzToLab(...rgbToXyz(r,g,b)); }
+    
+    function labToRgb(L,a,b_) {
+        const refX=95.047, refY=100.0, refZ=108.883;
+        const fy = (L+16)/116;
+        const fx = fy + (a/500);
+        const fz = fy - (b_/200);
+        const x = refX * (Math.pow(fx,3) > 0.008856 ? Math.pow(fx,3) : (116*fx-16)/7.787);
+        const y = refY * (Math.pow(fy,3) > 0.008856 ? Math.pow(fy,3) : (116*fy-16)/7.787);
+        const z = refZ * (Math.pow(fz,3) > 0.008856 ? Math.pow(fz,3) : (116*fz-16)/7.787);
+        let r = x/100, g = y/100, b = z/100;
+        const gamma = c => c <= 0.0031308 ? 12.92*c : 1.055*Math.pow(c,1/2.4)-0.055;
+        r = gamma(r); g = gamma(g); b = gamma(b);
+        return [Math.min(255,Math.max(0,Math.round(r*255))), Math.min(255,Math.max(0,Math.round(g*255))), Math.min(255,Math.max(0,Math.round(b*255)))];
+    }
+    
+    // 特征转换
+    function convertToFeatureSpace(pixelsRGB, space) {
+        if(space === 'rgb') return pixelsRGB.map(p => [p[0],p[1],p[2]]);
+        else return pixelsRGB.map(p => rgbToLab(p[0],p[1],p[2]));
+    }
+    function featureCenterToRGB(centerVec, space) {
+        if(space === 'rgb') return [Math.round(centerVec[0]), Math.round(centerVec[1]), Math.round(centerVec[2])];
+        else return labToRgb(centerVec[0], centerVec[1], centerVec[2]);
+    }
+    
+    // K-means (基于特征)
+    function kMeansOnFeatures(features, k, maxIter=25) {
+        if(!features.length) return {centers:[], counts:[]};
+        const N = features.length;
+        let indices = Array.from({length:N}, (_,i)=>i);
+        for(let i=indices.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [indices[i],indices[j]]=[indices[j],indices[i]]; }
+        let centers = [];
+        for(let i=0;i<k;i++) centers.push([...features[indices[i]]]);
+        let labels = new Array(N).fill(0);
+        let changed=true, iter=0;
+        while(changed && iter<maxIter){
+            changed=false;
+            for(let i=0;i<N;i++){
+                const vec=features[i];
+                let minDist=Infinity, best=0;
+                for(let c=0;c<k;c++){
+                    let dist=0;
+                    for(let d=0;d<vec.length;d++){ const diff=vec[d]-centers[c][d]; dist+=diff*diff; }
+                    if(dist<minDist){ minDist=dist; best=c; }
+                }
+                if(labels[i]!==best) changed=true;
+                labels[i]=best;
+            }
+            const newCenters = Array(k).fill().map(()=>new Array(features[0].length).fill(0));
+            const cnts = new Array(k).fill(0);
+            for(let i=0;i<N;i++){ const c=labels[i]; cnts[c]++; for(let d=0;d<features[i].length;d++) newCenters[c][d]+=features[i][d]; }
+            for(let c=0;c<k;c++){ if(cnts[c]>0){ for(let d=0;d<newCenters[c].length;d++) newCenters[c][d]/=cnts[c]; }
+            else { const randIdx=Math.floor(Math.random()*N); newCenters[c]=[...features[randIdx]]; } }
+            centers = newCenters;
+            iter++;
+        }
+        const finalCounts = new Array(k).fill(0);
+        for(let i=0;i<N;i++) finalCounts[labels[i]]++;
+        return {centers, counts:finalCounts};
+    }
+    
+    // 提取像素
+    function extractPixels(imgElement, maxDim=400) {
+        let w=imgElement.naturalWidth, h=imgElement.naturalHeight;
+        let tw=w, th=h;
+        if(w>maxDim || h>maxDim){ if(w>h){ tw=maxDim; th=Math.floor(h*(maxDim/w)); } else { th=maxDim; tw=Math.floor(w*(maxDim/h)); } }
+        const canvas = document.createElement('canvas');
+        canvas.width=tw; canvas.height=th;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(imgElement,0,0,tw,th);
+        const imgData=ctx.getImageData(0,0,tw,th);
+        const data=imgData.data;
+        const pixels=[];
+        for(let i=0;i<data.length;i+=4){
+            if(data[i+3]>=128) pixels.push([data[i],data[i+1],data[i+2]]);
+        }
+        return {pixels, total:pixels.length};
+    }
+    
+    // 渲染色板
+    function renderPalette(centersRGB, counts, totalPixels){
+        if(!centersRGB.length){ colorPaletteContainer.innerHTML='<div>无数据</div>'; return; }
+        const items = centersRGB.map((rgb,idx)=>({
+            hex: `#${((1<<24)+(rgb[0]<<16)+(rgb[1]<<8)+rgb[2]).toString(16).slice(1)}`,
+            count: counts[idx],
+            percent: totalPixels?((counts[idx]/totalPixels)*100).toFixed(1):0
+        })).sort((a,b)=>b.count-a.count);
+        let html='';
+        for(let it of items){
+            html+=`<div class="color-swatch"><div class="color-circle" style="background:${it.hex};"></div><div class="color-hex">${it.hex}</div><div class="count-info">📦 ${it.count} px</div><div>${it.percent}%</div></div>`;
+        }
+        colorPaletteContainer.innerHTML=html;
+    }
+    
+    // 渲染图表
+    function renderChart(centersRGB, counts){
+        if(!chartInstance) chartInstance = echarts.init(document.getElementById('dynamicChart'));
+        const data = centersRGB.map((rgb,idx)=>({
+            name: `#${((1<<24)+(rgb[0]<<16)+(rgb[1]<<8)+rgb[2]).toString(16).slice(1)} (${counts[idx]}px)`,
+            value: counts[idx],
+            itemStyle: { color: `#${((1<<24)+(rgb[0]<<16)+(rgb[1]<<8)+rgb[2]).toString(16).slice(1)}` }
+        })).sort((a,b)=>b.value-a.value);
+        const type = chartTypeSelect.value;
+        if(type === 'pie'){
+            chartInstance.setOption({
+                title:{text:`聚类结果 K=${kSlider.value}`, left:'center', top:5},
+                tooltip:{trigger:'item', formatter:'{b}: {d}%<br/>像素数量:{c}'},
+                series:[{type:'pie', radius:'55%', center:['50%','55%'], data, label:{show:true,formatter:'{d}%'}}],
+                legend:{orient:'vertical', left:'left'}
+            });
+        } else {
+            const categories=data.map(d=>d.name), values=data.map(d=>d.value), colors=data.map(d=>d.itemStyle.color);
+            chartInstance.setOption({
+                title:{text:`聚类结果 K=${kSlider.value}`, left:'center', top:5},
+                tooltip:{trigger:'axis'},
+                xAxis:{type:'category', data:categories, axisLabel:{rotate:25, fontSize:10}},
+                yAxis:{type:'value', name:'像素数量'},
+                series:[{type:'bar', data:values, itemStyle:{color:(params)=>colors[params.dataIndex], borderRadius:[6,6,0,0]}, label:{show:true,position:'top'}}],
+                legend:{show:false}
+            });
+        }
+        chartInstance.resize();
+    }
+    
+    // ---------- 通义千问 AI 和谐度判断 (已配置完整) ----------
+    async function evaluateHarmonyWithTongyi(colorsHex, k) {
+        const apiUrl = apiUrlInput.value.trim();
+        const apiKey = apiKeyInput.value.trim();
+        
+        if(!apiUrl) {
+            return { success: false, message: "未配置API地址", fallback: true };
+        }
+        if(!apiKey) {
+            return { success: false, message: "未配置API Key", fallback: true };
+        }
+        
+        const colorListStr = colorsHex.map((hex,idx)=>`颜色${idx+1}: ${hex}`).join('； ');
+        const prompt = `你是一位专业的色彩设计师。给定以下${k}种主色调（从图像聚类提取）：${colorListStr}。请判断这些颜色搭配是否和谐，并给出0-100的和谐度评分（分数越高越和谐），同时用一句话总结建议。输出格式必须为JSON：{"score": 数字, "comment": "一句话总结"}。只输出JSON，不要有其他内容。`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: "qwen-turbo",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0.5,
+                    max_tokens: 300
+                }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if(!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText.substring(0,100)}`);
+            }
+            
+            const data = await response.json();
+            let content = data.choices?.[0]?.message?.content || "";
+            content = content.replace(/```json|```/g, '').trim();
+            const parsed = JSON.parse(content);
+            
+            if(parsed.score !== undefined && parsed.comment) {
+                return { success: true, score: Math.min(100, Math.max(0, parsed.score)), comment: parsed.comment };
+            } else {
+                throw new Error("返回格式不正确");
+            }
+        } catch(err) {
+            clearTimeout(timeoutId);
+            console.error("通义千问调用失败:", err);
+            return { success: false, message: err.message, fallback: true };
+        }
+    }
+    
+    // 降级本地和谐度评估
+    function localHarmonyFallback(colorsHex) {
+        const rgbList = colorsHex.map(hex => {
+            const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+            return [r,g,b];
+        });
+        let totalDist=0, pairs=0;
+        for(let i=0;i<rgbList.length;i++){
+            for(let j=i+1;j<rgbList.length;j++){
+                const dr=rgbList[i][0]-rgbList[j][0], dg=rgbList[i][1]-rgbList[j][1], db=rgbList[i][2]-rgbList[j][2];
+                totalDist += Math.sqrt(dr*dr+dg*dg+db*db);
+                pairs++;
+            }
+        }
+        const avgDist = pairs? totalDist/pairs : 0;
+        let score = Math.min(100, Math.max(0, Math.round(avgDist / 2.55)));
+        let comment = "";
+        if(score>=70) comment = "🌈 色彩鲜明且富有层次，整体搭配较为和谐。";
+        else if(score>=45) comment = "🎨 色彩搭配中规中矩，可尝试微调饱和度或明度增强统一感。";
+        else comment = "⚠️ 颜色对比强烈/冲突，可能需要过渡色或调整主色比例。";
+        return { success: true, score, comment: `[本地评估] ${comment}` };
+    }
+    
+    async function runAIAnalysis(centersRGB) {
+        if(!centersRGB.length) return;
+        harmonyCard.style.display = 'block';
+        aiLoadingMsg.innerHTML = '<span class="loading-ai"></span> 通义千问大模型正在分析颜色和谐度...';
+        harmonyBadge.innerText = '分析中';
+        harmonyComment.innerText = '调用通义千问判断中，请稍等...';
+        
+        const hexColors = centersRGB.map(rgb => `#${((1<<24)+(rgb[0]<<16)+(rgb[1]<<8)+rgb[2]).toString(16).slice(1)}`);
+        let result;
+        
+        try {
+            result = await evaluateHarmonyWithTongyi(hexColors, centersRGB.length);
+            if(result.success && result.score !== undefined) {
+                aiLoadingMsg.innerHTML = '✅ 通义千问 AI 评估完成';
+                apiStatusMsg.innerHTML = '✅ 通义千问 API 调用成功 | 模型: qwen-turbo';
+                apiStatusMsg.className = 'api-note api-success';
+            } else {
+                result = localHarmonyFallback(hexColors);
+                aiLoadingMsg.innerHTML = '⚠️ 通义千问调用失败，使用本地配色规则评估';
+                apiStatusMsg.innerHTML = '⚠️ API调用失败: ' + (result.message || '未知错误') + '，使用本地评估';
+                apiStatusMsg.className = 'api-note';
+            }
+        } catch(e) {
+            result = localHarmonyFallback(hexColors);
+            aiLoadingMsg.innerHTML = '⚠️ 网络异常，使用本地评估';
+        }
+        
+        harmonyBadge.innerText = `${result.score} 分`;
+        harmonyComment.innerText = result.comment;
+        if(result.score >= 75) harmonyBadge.style.background = "#10b981";
+        else if(result.score >= 50) harmonyBadge.style.background = "#f59e0b";
+        else harmonyBadge.style.background = "#ef4444";
+    }
+    
+    // 主聚类流程
+    async function performFullAnalysis() {
+        if(!currentImageElement) { alert("请先上传图片"); return; }
+        const k = parseInt(kSlider.value);
+        const colorSpace = colorSpaceSelect.value;
+        colorPaletteContainer.innerHTML = '<div style="width:100%; text-align:center; padding:20px;">⏳ 聚类计算中...</div>';
+        if(chartInstance) chartInstance.showLoading();
+        harmonyCard.style.display = 'none';
+        
+        const {pixels: rgbPixels, total} = extractPixels(currentImageElement, 420);
+        if(rgbPixels.length === 0){ alert("无有效像素"); if(chartInstance) chartInstance.hideLoading(); return; }
+        const features = convertToFeatureSpace(rgbPixels, colorSpace);
+        const {centers: featureCenters, counts} = kMeansOnFeatures(features, k, 25);
+        const centersRGB = featureCenters.map(fc => featureCenterToRGB(fc, colorSpace));
+        currentClusteringResult = { centersRGB, counts, totalPixels: total };
+        renderPalette(centersRGB, counts, total);
+        renderChart(centersRGB, counts);
+        imgMeta.style.display = 'inline-block';
+        imgMeta.innerHTML = `✅ 聚类完成 | K=${k} | 空间=${colorSpace.toUpperCase()} | 有效像素:${total}`;
+        if(chartInstance) chartInstance.hideLoading();
+        await runAIAnalysis(centersRGB);
+    }
+    
+    // 图片上传处理
+    function handleImageFile(file) {
+        if(!file || !file.type.startsWith('image/')) { alert("请上传图片"); return; }
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            currentImageElement = img;
+            previewImage.src = url;
+            previewImage.style.display = 'block';
+            noImageMsg.style.display = 'none';
+            URL.revokeObjectURL(url);
+            performFullAnalysis();
+        };
+        img.onerror = () => { alert("加载失败"); URL.revokeObjectURL(url); };
+        img.src = url;
+    }
+    
+    // 事件绑定
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => { if(e.target.files?.[0]) handleImageFile(e.target.files[0]); });
+    uploadArea.addEventListener('dragover', e => e.preventDefault());
+    uploadArea.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) handleImageFile(e.dataTransfer.files[0]); });
+    reanalyzeBtn.addEventListener('click', () => performFullAnalysis());
+    kSlider.addEventListener('input', () => { kValueDisplay.innerText = kSlider.value; if(currentImageElement) performFullAnalysis(); });
+    chartTypeSelect.addEventListener('change', () => { if(currentClusteringResult.centersRGB.length) renderChart(currentClusteringResult.centersRGB, currentClusteringResult.counts); });
+    colorSpaceSelect.addEventListener('change', () => { if(currentImageElement) performFullAnalysis(); });
+    
+    // 初始化
+    chartInstance = echarts.init(document.getElementById('dynamicChart'));
+    chartInstance.setOption({ title: { text: '等待图片分析' }, series: [] });
+</script>
+</body>
+</html>
